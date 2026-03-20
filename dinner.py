@@ -100,6 +100,13 @@ def handle_message(event):
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
 if __name__ == "__main__":
-    app.run(port=5000)
+   import os  # ← これをコードの一番上（import Flaskの近く）に追加！
+
+# --- 中略（メニューとかはそのまま） ---
+
+if __name__ == "__main__":
+    # Renderが指定するポート番号を取得。なければ5000番を使う。
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
 
   
