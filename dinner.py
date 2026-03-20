@@ -44,15 +44,15 @@ def handle_message(event):
         reply = f"今日の単品は... 【 {random.choice(menu_simple['単品'])} 】やで！"
     elif "外食" in text:
         reply = f"外食やな！オススメは... 【 {random.choice(menu_simple['外食'])} 】！"
-    elif "爆速" in text:
-        reply = f"爆速で食え！ 【 {random.choice(menu_simple['爆速'])} 】や！"
-    elif "一汁三菜" in text or "本気" in text:
+    elif "手軽" in text:
+        reply = f"お手軽に！ 【 {random.choice(menu_simple['手軽'])} 】や！"
+    elif "献立" in text or "調理" in text:
         m = random.choice(ichiju_sansai["主菜"])
         s = random.choice(ichiju_sansai["副菜"])
         soup = random.choice(ichiju_sansai["汁物"])
-        reply = f"承知いたしました。本日のメニューはこちら\n【主菜】{m}\n【副菜】{s}\n【汁物】{soup}\nしっかり食べや！"
+        reply = f"承知いたしました。本日のメニューはこちら\n【主菜】{m}\n【副菜】{s}\n【汁物】{soup}\nお腹一杯になってくださいね！"
     else:
-        reply = "「単品」「外食」「爆速」「一汁三菜」のどれか送ってみて！"
+        reply = "「単品」「外食」「爆速」「献立」「調理」のどれか送ってみて！"
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
 # --- ここが最重要！Render専用の起動設定 ---
