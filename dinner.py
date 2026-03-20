@@ -7,16 +7,14 @@ from linebot.models import MessageEvent, TextMessage, TextSendMessage
 
 app = Flask(__name__)
 
-# ==========================================
-# ★ LINE Developersからコピーした合鍵
-# ==========================================
+# LINEの合鍵
 YOUR_CHANNEL_ACCESS_TOKEN = '7aPVs0ueBdX0ITL8fuD6d5GqN0GPKB466hra1KM4DyyKgaHGZLcwZEcwKCapl/X4jCek/2O7l0Rd72aExVLa44l12b8uUD8VSHPAGG+kpntba0Jfce4RdFJsgfth/BK6mN7LO1u6/rcuk45Ft85iaAdB04t89/1O/w1cDnyilFU='
 YOUR_CHANNEL_SECRET = 'd0e2d9192968cf2aee493350ef7b19aa'
 
 line_bot_api = LineBotApi(YOUR_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(YOUR_CHANNEL_SECRET)
 
-# --- 献立データ ---
+# 献立データ（省略なし）
 menu_simple = {
     "単品": ["カルボナーラ", "オムライス", "キーマカレー", "親子丼", "ガパオライス", "豚キムチ丼", "ソース焼きそば", "海老チャーハン", "照り焼きチキン丼", "ミートドリア", "ビビンバ", "ナポリタン", "冷やしうどん", "明太クリームパスタ", "牛丼", "タコライス", "上海焼きそば", "麻婆チャーハン", "ペペロンチーノ", "カツ丼", "ルーロー飯", "ジャージャー麺", "あんかけスパゲティ", "ドライカレー", "ロコモコ丼", "天津飯", "ソースカツ丼", "たらこスパゲティ", "ビビン麺", "焼きカレードリア"],
     "外食": ["サイゼリヤ", "スシロー", "マクドナルド", "吉野家", "丸亀製麺", "ガスト", "焼肉きんぐ", "ココイチ", "くら寿司", "天下一品", "大戸屋", "餃子の王将", "びっくりドンキー", "モスバーガー", "コメダ珈琲", "やよい軒", "はま寿司", "バーミヤン", "松屋", "ケンタッキー", "なか卯", "ジョイフル", "ロイヤルホスト", "いきなりステーキ", "かつや", "サブウェイ", "リンガーハット", "ジョリーパスタ", "てんや", "串カツ田中"],
@@ -57,8 +55,7 @@ def handle_message(event):
         reply = "「単品」「外食」「爆速」「一汁三菜」のどれか送ってみて！"
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
+# --- ここが最重要！Render専用の起動設定 ---
 if __name__ == "__main__":
-    # Renderのポート番号を正しく受け取るための設定
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-  
