@@ -7,14 +7,14 @@ from linebot.models import MessageEvent, TextMessage, TextSendMessage
 
 app = Flask(__name__)
 
-# LINEの合鍵
-YOUR_CHANNEL_ACCESS_TOKEN = '7aPVs0ueBdX0ITL8fuD6d5GqN0GPKB466hra1KM4DyyKgaHGZLcwZEcwKCapl/X4jCek/2O7l0Rd72aExVLa44l12b8uUD8VSHPAGG+kpntba0Jfce4RdFJsgfth/BK6mN7LO1u6/rcuk45Ft85iaAdB04t89/1O/w1cDnyilFU='
-YOUR_CHANNEL_SECRET = 'd0e2d9192968cf2aee493350ef7b19aa'
+# --- 合鍵はRenderの設定画面（Environment）から読み込む ---
+YOUR_CHANNEL_ACCESS_TOKEN = os.environ.get('LINE_CHANNEL_ACCESS_TOKEN')
+YOUR_CHANNEL_SECRET = os.environ.get('LINE_CHANNEL_SECRET')
 
 line_bot_api = LineBotApi(YOUR_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(YOUR_CHANNEL_SECRET)
 
-# 献立データ（省略なし）
+# 献立データ（Yumaくんの全30種超えリストを完全反映！）
 menu_simple = {
     "単品": ["カルボナーラ", "オムライス", "キーマカレー", "親子丼", "ガパオライス", "豚キムチ丼", "ソース焼きそば", "海老チャーハン", "照り焼きチキン丼", "ミートドリア", "ビビンバ", "ナポリタン", "冷やしうどん", "明太クリームパスタ", "牛丼", "タコライス", "上海焼きそば", "麻婆チャーハン", "ペペロンチーノ", "カツ丼", "ルーロー飯", "ジャージャー麺", "あんかけスパゲティ", "ドライカレー", "ロコモコ丼", "天津飯", "ソースカツ丼", "たらこスパゲティ", "ビビン麺", "焼きカレードリア"],
     "外食": ["サイゼリヤ", "スシロー", "マクドナルド", "吉野家", "丸亀製麺", "ガスト", "焼肉きんぐ", "ココイチ", "くら寿司", "天下一品", "大戸屋", "餃子の王将", "びっくりドンキー", "モスバーガー", "コメダ珈琲", "やよい軒", "はま寿司", "バーミヤン", "松屋", "ケンタッキー", "なか卯", "ジョイフル", "ロイヤルホスト", "いきなりステーキ", "かつや", "サブウェイ", "リンガーハット", "ジョリーパスタ", "てんや", "串カツ田中"],
@@ -40,22 +40,28 @@ def callback():
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     text = event.message.text
+    
     if "単品" in text:
         reply = f"今日の単品は... 【 {random.choice(menu_simple['単品'])} 】やで！"
     elif "外食" in text:
         reply = f"外食やな！オススメは... 【 {random.choice(menu_simple['外食'])} 】！"
     elif "手軽" in text:
         reply = f"お手軽に！ 【 {random.choice(menu_simple['手軽'])} 】や！"
-    elif "献立" in text or "調理" in text:
+    elif any(word in text for word in ["献立", "調理", "三菜"]):
         m = random.choice(ichiju_sansai["主菜"])
-        s = random.choice(ichiju_sansai["副菜"])
+        s_list = random.sample(ichiju_sansai["副菜"], 2) # 被りなしで2つ選ぶ
         soup = random.choice(ichiju_sansai["汁物"])
-        reply = f"承知いたしました。本日のメニューはこちら\n【主菜】{m}\n【副菜】{s}\n【汁物】{soup}\nお腹一杯になってくださいね！"
+        reply = (f"承知いたしました。本日のメニューはこちら\n"
+                 f"【主菜】{m}\n"
+                 f"【副菜1】{s_list[0]}\n"
+                 f"【副菜2】{s_list[1]}\n"
+                 f"【汁物】{soup}\n"
+                 "お腹一杯になってくださいね！")
     else:
-        reply = "「単品」「外食」「爆速」「献立」「調理」のどれか送ってみて！"
+        reply = "「単品」「外食」「手軽」「献立」のどれか送ってみてな！"
+        
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
-# --- ここが最重要！Render専用の起動設定 ---
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
