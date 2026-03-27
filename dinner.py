@@ -104,6 +104,7 @@ def handle_message(event):
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
 if __name__ == "__main__":
-    # Renderが指定するポート番号（PORT）を確実にキャッチするようにします
+    # Renderが指定するポート番号を確実にキャッチします
     port = int(os.environ.get("PORT", 10000))
+    # host="0.0.0.0" にすることで外部（LINE）からの接続を許可します
     app.run(host="0.0.0.0", port=port)
