@@ -56,29 +56,39 @@ def handle_message(event):
         choices = [r["name"] for r in recipes if r["category"] == "手軽"]
         reply = f"お手軽に！ 【 {random.choice(choices)} 】や！"
 
-    # 2. 【AIモード】文章から食材を抜き出して検索
+   # 2. 【AIモード】
     else:
         try:
-            # AIに食材だけを抽出させる
-            prompt = f"以下の文章から料理の材料（名詞）だけを、ひらがなと漢字の両方で、スペース区切りで抽出して。余計な文章は一切不要：『{text}』"
+            # AIへの頼み方をさらにシンプルに
+            prompt = f"「{text}」という文章から、料理の材料（名詞）を抜き出して。スペース区切りで、ひらがなと漢字の両方を出して。例：卵 たまご 豚肉。余計な説明は禁止。"
             response = model.generate_content(prompt)
             keywords = response.text.strip().split()
             
-            # 抽出された食材のいずれかが、レシピのtagsに含まれているか探す
+            # デバッグ用：AIが何を抜き出したかLINEで教えてくれるようにする（後で消してOK）
+            # line_bot_api.reply_message(event.reply_token, TextSendMessage(text=f"AI抽出: {keywords}"))
+
             matches = []
             for r in recipes:
-                # ユーザーのキーワードがタグに含まれる、またはタグがキーワードに含まれる（部分一致）
-                if any(any(kw in tag or tag in kw for tag in r["tags"]) for kw in keywords):
-                    matches.append(r["name"])
+                # レシピの全タグを1つの長い文字列にする
+                all_tags_str = "".join(r.get("tags", []))
+                
+                # AIが抜いたキーワードのどれか1つでも、タグのどこかに含まれてればOK！
+                for kw in keywords:
+                    if kw in all_tags_str or all_tags_str in kw:
+                        matches.append(r["name"])
+                        break # 1つ見つかればその料理は採用
             
             if matches:
-                suggestion = random.choice(matches)
-                reply = f"なるほど、AIが分析したところ『{', '.join(set(keywords))}』があるんやな！\nそれなら【 {suggestion} 】とかどう？"
+                suggestion = random.choice(list(set(matches))) # 重複排除
+                reply = f"AIの分析：『{text}』には「{'・'.join(set(keywords))}」が入ってるな！\nそれなら【 {suggestion} 】がええと思うで！"
             else:
-                reply = f"『{text}』から食材を探したけど、俺のリストにはまだないわ…すまんな！"
-        except Exception as e:
-            reply = "AIがちょっと考え込んでるみたいやわ。もう一回送ってみて！"
+                # 何もヒットしなかった時、AIに直接「何が作れるか」聞いちゃう最終手段
+                prompt_fallback = f"「{text}」にある食材を使って作れる一般的な料理名を1つだけ答えて。例：肉じゃが"
+                ai_suggest = model.generate_content(prompt_fallback).text.strip()
+                reply = f"俺のリストにはなかったけど、AIいわく【 {ai_suggest} 】とかどうや？\n（「献立」って送ればセットも出すで！）"
 
+        except Exception as e:
+            reply = "AIがちょっと迷子やわ。もう一回短く送ってみて！"
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
 if __name__ == "__main__":
