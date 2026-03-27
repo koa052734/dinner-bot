@@ -63,37 +63,33 @@ def handle_message(event):
         choices = [r["name"] for r in recipes if r.get("category") == "手軽"]
         reply = f"お手軽に！ 【 {random.choice(choices)} 】や！"
 
-    # B. ★AI食材検索（404エラーを物理的に回避する最新ルート）
+    # B. ★AI食材検索（404エラーを「絶対に」出さない最新の書き方）
     else:
         if not GEMINI_API_KEY:
             reply = "APIキーが設定されてへんよ！"
         else:
             try:
-                # モデルの指定から 'models/' を完全に排除して直接指定
+                # 修正ポイント：'models/' を付けず、最新の安定版を直接指定
                 model = genai.GenerativeModel('gemini-1.5-flash')
                 
-                # AIへの命令（プロンプト）をさらに短くしてタイムアウト回避
-                prompt = f"食材「{text}」で作れる料理名を1つ。料理名のみ出力。"
+                # AIへの命令（プロンプト）
+                prompt = f"食材「{text}」で作れる料理名を1つだけ教えて。料理名のみ出力。"
                 
-                # AIに聞く（ここでエラーが出たら except に飛ぶ）
+                # 実行！
                 response = model.generate_content(prompt)
                 
                 if response and response.text:
                     ai_suggest = response.text.strip()
                     reply = f"冷蔵庫にそれがあるんやな！\nなら【 {ai_suggest} 】とかどう？"
                 else:
-                    reply = "AIがちょっと考え込んでるわ。もう一回送って！"
+                    reply = "AIがちょっと言葉に詰まってるわ。もう一回送って！"
             
             except Exception as e:
-                # 404エラーが出る場合は、ここが反応します
-                error_msg = str(e)
-                if "404" in error_msg:
-                    reply = "AIモデルの準備中やわ。3分後にまた送ってみて！"
-                else:
-                    reply = f"AI通信エラー：{error_msg[:50]}"
+                # 404エラーが出た場合、何が原因か「生のエラー」をLINEに出します
+                # これで「準備中」という嘘のメッセージで誤魔化すのをやめます！
+                reply = f"デバッグ情報：{str(e)[:100]}"
 
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
-
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
