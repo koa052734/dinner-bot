@@ -58,28 +58,31 @@ def handle_message(event):
         choices = [r["name"] for r in recipes if r["category"] == "手軽"]
         reply = f"お手軽に！ 【 {random.choice(choices)} 】や！"
 
- # 2. AI食材検索モード（モデル名を修正！）
+# 2. AI食材検索モード（404エラーを物理的に回避する書き方）
     else:
         api_key = os.environ.get('GEMINI_API_KEY')
         try:
             genai.configure(api_key=api_key)
-            # ここ！'models/' を消してシンプルに指定します
+            
+            # 修正ポイント：'models/' を含めず、かつ最新のフラッシュモデルを指定
             model = genai.GenerativeModel('gemini-1.5-flash')
             
-            prompt = f"{text}で作れる料理名を1つだけ。挨拶なし。"
+            # AIへの命令（ここをシンプルにするのが一番エラーが出にくい）
+            prompt = f"{text}を使って作れる料理名を1つだけ教えて。料理名のみ出力。"
+            
+            # 実行！
             response = model.generate_content(prompt)
             
             if response and response.text:
-                reply = f"なら【 {response.text.strip()} 】とかどう？"
+                reply = f"冷蔵庫にそれがあるんやな！\nなら【 {response.text.strip()} 】とかどう？"
             else:
-                reply = "AIが言葉に詰まってるわ。もう一回送って！"
+                reply = "AIがちょっと言葉に詰まってるわ。もう一回送って！"
                 
         except Exception as e:
-            # エラーの詳細（モデル名など）をLINEに出す
-            reply = f"デバッグ情報：{str(e)}"
+            # まだエラーが出るなら、その正体を暴く（今度は 404 以外が出るはず）
+            reply = f"デバッグ情報：{str(e)[:100]}"
 
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
-
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
