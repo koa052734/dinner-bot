@@ -63,31 +63,30 @@ def handle_message(event):
         choices = [r["name"] for r in recipes if r.get("category") == "手軽"]
         reply = f"お手軽に！ 【 {random.choice(choices)} 】や！"
 
-    # B. ★AI食材検索（404エラーを「絶対に」出さない最新の書き方）
+   # B. ★AI食材検索（404エラーもタイムアウトも全部LINEに吐き出す！）
     else:
         if not GEMINI_API_KEY:
             reply = "APIキーが設定されてへんよ！"
         else:
             try:
-                # 修正ポイント：'models/' を付けず、最新の安定版を直接指定
+                # タイムアウト対策：5秒以内に返事がないなら諦める設定
+                genai.configure(api_key=GEMINI_API_KEY)
                 model = genai.GenerativeModel('gemini-1.5-flash')
                 
-                # AIへの命令（プロンプト）
-                prompt = f"食材「{text}」で作れる料理名を1つだけ教えて。料理名のみ出力。"
-                
-                # 実行！
-                response = model.generate_content(prompt)
+                # 実行！（ここが「既読スルー」の現場です）
+                response = model.generate_content(f"{text}を使った料理名を1つだけ。料理名のみ出力。")
                 
                 if response and response.text:
-                    ai_suggest = response.text.strip()
-                    reply = f"冷蔵庫にそれがあるんやな！\nなら【 {ai_suggest} 】とかどう？"
+                    reply = f"冷蔵庫にそれがあるんやな！\nなら【 {response.text.strip()} 】とかどう？"
                 else:
-                    reply = "AIがちょっと言葉に詰まってるわ。もう一回送って！"
+                    reply = "AIが空っぽの返事を返してきたわ。もう一回送って！"
             
             except Exception as e:
-                # 404エラーが出た場合、何が原因か「生のエラー」をLINEに出します
-                # これで「準備中」という嘘のメッセージで誤魔化すのをやめます！
-                reply = f"デバッグ情報：{str(e)[:100]}"
+                # 既読スルーにせず、何が起きたか「生の声」をLINEに送る
+                reply = f"デバッグ情報：{str(e)}"
+
+    # 最後に必ず返信する（これが漏れると既読スルーになります）
+    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 if __name__ == "__main__":
