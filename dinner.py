@@ -17,7 +17,7 @@ GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 line_bot_api = LineBotApi(YOUR_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(YOUR_CHANNEL_SECRET)
 
-# Geminiの初期化（キーがない場合のエラー回避付き）
+# Geminiの初期化
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
     model = genai.GenerativeModel('gemini-1.5-flash')
@@ -56,10 +56,16 @@ def handle_message(event):
         reply = f"今日の単品は... 【 {random.choice(choices)} 】やで！"
         
     elif any(word in text for word in ["献立", "調理", "三菜"]):
-        main = random.choice([r["name"] for r in recipes if r["category"] == "主菜"])
-        sides = random.sample([r["name"] for r in recipes if r["category"] == "副菜"], 2)
-        soup = random.choice([r["name"] for r in recipes if r["category"] == "汁物"])
-        reply = f"本日の献立はこちら！\n【主菜】{main}\n【副菜1】{sides[0]}\n【副菜2】{sides[1]}\n【汁物】{soup}"
+        main_list = [r["name"] for r in recipes if r["category"] == "主菜"]
+        side_list = [r["name"] for r in recipes if r["category"] == "副菜"]
+        soup_list = [r["name"] for r in recipes if r["category"] == "汁物"]
+        if main_list and len(side_list) >= 2 and soup_list:
+            main = random.choice(main_list)
+            sides = random.sample(side_list, 2)
+            soup = random.choice(soup_list)
+            reply = f"本日の献立はこちら！\n【主菜】{main}\n【副菜1】{sides[0]}\n【副菜2】{sides[1]}\n【汁物】{soup}"
+        else:
+            reply = "献立用のデータが足りへんわ。"
 
     elif "手軽" in text:
         choices = [r["name"] for r in recipes if r["category"] == "手軽"]
@@ -68,7 +74,7 @@ def handle_message(event):
     # 2. 【AI食材検索モード】
     else:
         if not model:
-            reply = "AIのキー(GEMINI_API_KEY)が読み込めてへんみたいや。Renderの設定を確認してな。"
+            reply = "AIの設定(GEMINI_API_KEY)が読み込めてへんみたいやわ。"
         else:
             try:
                 # AIに食材を抜き出させる
@@ -76,7 +82,7 @@ def handle_message(event):
                 response = model.generate_content(prompt)
                 keywords = response.text.strip().split()
                 
-                # 検索ロジック（部分一致で広く探す）
+                # 検索ロジック
                 matches = []
                 for r in recipes:
                     all_tags = "".join(r.get("tags", []))
@@ -85,18 +91,19 @@ def handle_message(event):
                 
                 if matches:
                     suggestion = random.choice(list(set(matches)))
-                    reply = f"AI抽出：{', '.join(set(keywords))}\n\n冷蔵庫にそれがあるんやな！\nなら【 {suggestion} 】とかどう？"
+                    reply = f"AI抽出：{', '.join(set(keywords))}\n\nなら【 {suggestion} 】とかどう？"
                 else:
-                    # JSONにない場合はAIが世の中の知識で答える（フォールバック）
-                    fallback_prompt = f"「{text}」にある食材を使って作れる料理名を1つだけ答えて。例：肉じゃが"
+                    # JSONにない場合はAIが世の中の知識で答える
+                    fallback_prompt = f"「{text}」にある食材を使って作れる一般的な料理名を1つだけ答えて。例：肉じゃが"
                     ai_suggest = model.generate_content(fallback_prompt).text.strip()
                     reply = f"俺のリストにはなかったけど、AIいわく【 {ai_suggest} 】がええんちゃうかな！"
             
             except Exception as e:
-                reply = f"AIがちょっとエラー吐いたわ：{str(e)}"
+                reply = f"AIがちょっと考え込んでるわ。もう一回送ってみて！"
 
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
 if __name__ == "__main__":
+    # Renderでポートエラーが出ないように設定
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
