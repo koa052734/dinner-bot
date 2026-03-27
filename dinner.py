@@ -8,7 +8,11 @@ from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 
 app = Flask(__name__)
-
+# --- 追加：UptimeRobot専用の「生存確認」窓口 ---
+@app.route("/", methods=['GET'])
+def index():
+    return "Bot is running!", 200
+# ------------------------------------------
 # --- 1. 設定（ここで一気に準備する！） ---
 YOUR_CHANNEL_ACCESS_TOKEN = os.environ.get('LINE_CHANNEL_ACCESS_TOKEN')
 YOUR_CHANNEL_SECRET = os.environ.get('LINE_CHANNEL_SECRET')
