@@ -60,17 +60,21 @@ def handle_message(event):
         choices = [r["name"] for r in recipes if r["category"] == "手軽"]
         reply = f"お手軽に！ 【 {random.choice(choices)} 】や！"
 
-    # ★ここが新機能！上のどれにも当てはまらない（食材名など）の場合
+   # 【食材検索モード】（上のどれにも当てはまらない時）
     else:
-        # JSONのtagsの中に、送られた文字が含まれている料理を全部探す
-        matches = [r["name"] for r in recipes if text in r["tags"]]
+        # 修正ポイント：タグのリストを一つずつ取り出して、その中に「卵」が含まれるかチェック
+        matches = []
+        for r in recipes:
+            # 各レシピのtags（リスト）の中に、送られた文字が含まれているか
+            # 例：r["tags"] が ["卵", "たまご"] なら、どっちかにヒットすればOK
+            if any(text in tag for tag in r.get("tags", [])):
+                matches.append(r["name"])
         
         if matches:
             suggestion = random.choice(matches)
             reply = f"冷蔵庫に『{text}』があるんやな！\nそれなら【 {suggestion} 】とかどう？"
         else:
-            # 検索しても見つからなかった時だけ、いつもの案内を出す
-            reply = f"『{text}』を使ったレシピはまだないわ。ごめん！\n「単品」とか「献立」って送ってみて！"
+            reply = f"『{text}』を使ったレシピ、まだ俺のリストにないわ…メンボクナイ！\n「単品」とか「献立」って送ってみて！"
 
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
