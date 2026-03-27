@@ -60,12 +60,12 @@ def handle_message(event):
         f_sai1 = random.choice(PARTS["副菜1"])
         f_sai2 = random.choice(PARTS["副菜2"])
         shiru = random.choice(PARTS["汁物"])
-        reply = f"今日の【献立】ガチャの結果や！\n\n【主菜】{s_sai}\n【副菜1】{f_sai1}\n【副菜2】{f_sai2}\n【汁物】{shiru}"
+        reply = f"今日の【献立】ガチャの結果です！\n\n【主菜】{s_sai}\n【副菜1】{f_sai1}\n【副菜2】{f_sai2}\n【汁物】{shiru}"
 
     # --- 3. 単品・手軽・外食の処理 ---
     elif text in OTHER_LISTS:
         menu = random.choice(OTHER_LISTS[text])
-        reply = f"今日の【{text}】は【 {menu} 】やで。"
+        reply = f"今日の【{text}】は【 {menu} 】で決まりですね！。"
     
     # --- 4. それ以外（食材）はAIが考える ---
     else:
@@ -73,7 +73,7 @@ def handle_message(event):
             model = genai.GenerativeModel('gemini-3-flash-preview')
             prompt = f"食材「{text}」で、主菜、副菜2つ、汁物の献立。料理名のみを簡潔に回答して。"
             response = model.generate_content(prompt)
-            reply = f"冷蔵庫の「{text}」から考えたで。\n\n{response.text.strip()}"
+            reply = f"「{text}」でいくとこちらがおすすめですよ！\n\n{response.text.strip()}"
         except Exception as e:
             reply = f"エラー：{str(e)[:40]}"
     
