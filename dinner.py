@@ -58,35 +58,25 @@ def handle_message(event):
         choices = [r["name"] for r in recipes if r["category"] == "手軽"]
         reply = f"お手軽に！ 【 {random.choice(choices)} 】や！"
 
-   # 2. AI食材検索モード（ここを最新版に！）
+  # 2. AI食材検索モード（最短・最速ルート）
     else:
         api_key = os.environ.get('GEMINI_API_KEY')
-        if not api_key:
-            reply = "APIキーが設定されてへんみたいやわ。"
-        else:
-            try:
-                # 修正ポイント：設定を一度だけ確実に行う
-                genai.configure(api_key=api_key)
-                
-                # 修正ポイント：モデル名を最新の安定版に指定
-                model = genai.GenerativeModel('gemini-1.5-flash')
-                
-                # AIへの命令（プロンプト）をさらにシンプルに
-                prompt = f"入力された食材「{text}」を使って作れる料理名を1つだけ答えて。解説や挨拶は一切抜き。料理名のみ出力して。"
-                
-                # AIに答えさせる
-                response = model.generate_content(prompt)
-                
-                # 安全にテキストを取り出す
-                if response and response.text:
-                    ai_suggest = response.text.strip()
-                    reply = f"冷蔵庫にそれがあるんやな！\nなら【 {ai_suggest} 】とかどう？"
-                else:
-                    reply = "AIが言葉を詰まらせてるわ。もう一度送ってみて！"
+        try:
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel('gemini-1.5-flash')
             
-            except Exception as e:
-                # エラーの中身をLINEに出して原因を特定する（デバッグ用）
-                reply = f"AI通信エラーやわ：{str(e)[:50]}" 
+            # AIへの命令を極限まで短くして、反応を速くする
+            prompt = f"{text}で作れる料理名を1つだけ。挨拶なし。"
+            response = model.generate_content(prompt)
+            
+            if response and response.text:
+                reply = f"なら【 {response.text.strip()} 】とかどう？"
+            else:
+                reply = "AIが言葉に詰まってるわ。もう一回送って！"
+                
+        except Exception as e:
+            # 何がダメなのか、LINEに直接吐き出させる
+            reply = f"デバッグ情報：{str(e)[:50]}"
 
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
