@@ -33,8 +33,8 @@ def callback():
 def handle_message(event):
     text = event.message.text
     try:
-        # 最新の安定モデルを指定
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        # 2026年3月現在の最新・プレビューモデル名を指定
+model = genai.GenerativeModel('gemini-3-flash-preview')
         # LINEの5秒ルールに間に合わせるため、超短く回答させる
         response = model.generate_content(f"食材「{text}」で料理名を1つ。回答は料理名のみ。")
         reply = f"冷蔵庫にそれがあるんやな！\nなら【 {response.text.strip()} 】とかどう？"
