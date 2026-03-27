@@ -58,14 +58,14 @@ def handle_message(event):
         choices = [r["name"] for r in recipes if r["category"] == "手軽"]
         reply = f"お手軽に！ 【 {random.choice(choices)} 】や！"
 
-  # 2. AI食材検索モード（最短・最速ルート）
+ # 2. AI食材検索モード（モデル名を修正！）
     else:
         api_key = os.environ.get('GEMINI_API_KEY')
         try:
             genai.configure(api_key=api_key)
+            # ここ！'models/' を消してシンプルに指定します
             model = genai.GenerativeModel('gemini-1.5-flash')
             
-            # AIへの命令を極限まで短くして、反応を速くする
             prompt = f"{text}で作れる料理名を1つだけ。挨拶なし。"
             response = model.generate_content(prompt)
             
@@ -75,8 +75,8 @@ def handle_message(event):
                 reply = "AIが言葉に詰まってるわ。もう一回送って！"
                 
         except Exception as e:
-            # 何がダメなのか、LINEに直接吐き出させる
-            reply = f"デバッグ情報：{str(e)[:50]}"
+            # エラーの詳細（モデル名など）をLINEに出す
+            reply = f"デバッグ情報：{str(e)}"
 
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
