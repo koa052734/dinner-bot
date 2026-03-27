@@ -12,17 +12,9 @@ app = Flask(__name__)
 # --- 設定（RenderのEnvironmentから読み込み） ---
 YOUR_CHANNEL_ACCESS_TOKEN = os.environ.get('LINE_CHANNEL_ACCESS_TOKEN')
 YOUR_CHANNEL_SECRET = os.environ.get('LINE_CHANNEL_SECRET')
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 
 line_bot_api = LineBotApi(YOUR_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(YOUR_CHANNEL_SECRET)
-
-# Geminiの初期化
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
-else:
-    model = None
 
 def load_menu_data():
     with open('menu_data.json', 'r', encoding='utf-8') as f:
@@ -50,7 +42,7 @@ def handle_message(event):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="JSONデータの読み込みに失敗したわ。"))
         return
 
-    # 1. 固定キーワード判定（高速反応）
+    # 1. 固定キーワード判定（ここは今まで通り動きます）
     if "単品" in text:
         choices = [r["name"] for r in recipes if r["category"] == "単品"]
         reply = f"今日の単品は... 【 {random.choice(choices)} 】やで！"
@@ -71,15 +63,20 @@ def handle_message(event):
         choices = [r["name"] for r in recipes if r["category"] == "手軽"]
         reply = f"お手軽に！ 【 {random.choice(choices)} 】や！"
 
-    # 2. 【AI食材検索モード】
+    # 2. 【AI食材検索モード】★ここを修正！
     else:
-        if not model:
-            reply = "AIの設定(GEMINI_API_KEY)が読み込めてへんみたいやわ。"
+        # 使う直前にAPIキーを読み込み、AIを準備する
+        api_key = os.environ.get('GEMINI_API_KEY')
+        if not api_key:
+            reply = "APIキーがRenderに設定されてへんみたいやわ。"
         else:
             try:
+                genai.configure(api_key=api_key)
+                local_model = genai.GenerativeModel('gemini-1.5-flash')
+                
                 # AIに食材を抜き出させる
                 prompt = f"「{text}」という文章から料理の材料（名詞）を抜き出して。スペース区切りで、ひらがなと漢字の両方を出して。例：卵 たまご 豚肉。余計な説明は一切不要。"
-                response = model.generate_content(prompt)
+                response = local_model.generate_content(prompt)
                 keywords = response.text.strip().split()
                 
                 # 検索ロジック
@@ -95,16 +92,15 @@ def handle_message(event):
                 else:
                     # JSONにない場合はAIが世の中の知識で答える
                     fallback_prompt = f"「{text}」にある食材を使って作れる一般的な料理名を1つだけ答えて。例：肉じゃが"
-                    ai_suggest = model.generate_content(fallback_prompt).text.strip()
+                    ai_suggest = local_model.generate_content(fallback_prompt).text.strip()
                     reply = f"俺のリストにはなかったけど、AIいわく【 {ai_suggest} 】がええんちゃうかな！"
             
             except Exception as e:
-                reply = f"AIがちょっと考え込んでるわ。もう一回送ってみて！"
+                # 何が起きたか詳細をLINEに送るように変更
+                reply = f"AIエラー発生：{str(e)}"
 
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
 if __name__ == "__main__":
-    # Renderが指定するポート番号を確実にキャッチします
     port = int(os.environ.get("PORT", 10000))
-    # host="0.0.0.0" にすることで外部（LINE）からの接続を許可します
     app.run(host="0.0.0.0", port=port)
